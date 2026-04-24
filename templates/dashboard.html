@@ -1,0 +1,135 @@
+{% extends 'layout.html' %}
+{% block content %}
+<section class="page-hero page-hero-user">
+  <div>
+    <div class="section-kicker">Customer console</div>
+    <h1>Account overview</h1>
+    <p class="muted">
+      Personal banking view used as the customer-side baseline during account takeover and fraudulent transfer demonstrations.
+    </p>
+  </div>
+  <div class="hero-inline-stats">
+    <div class="hero-inline-card">
+      <span class="hero-inline-label">Profile</span>
+      <strong>{{ current_user.full_name }}</strong>
+    </div>
+    <div class="hero-inline-card">
+      <span class="hero-inline-label">Role</span>
+      <strong>{{ current_user.role|title }}</strong>
+    </div>
+  </div>
+</section>
+
+<div class="grid cols-3">
+  <section class="card stat-card">
+    <div class="muted">Account number</div>
+    <div class="stat-value">{{ account.account_number|mask_account }}</div>
+  </section>
+  <section class="card stat-card">
+    <div class="muted">Account type</div>
+    <div class="stat-value">{{ account.account_type }}</div>
+  </section>
+  <section class="card stat-card">
+    <div class="muted">Available balance</div>
+    <div class="stat-value">{{ account.balance|currency }}</div>
+  </section>
+</div>
+
+<div class="grid cols-2">
+  <section class="card">
+    <div class="section-header">
+      <h2>Recent activity</h2>
+      <a class="inline-link" href="{{ url_for('transactions_page') }}">View all</a>
+    </div>
+    {% if transactions %}
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Counterparty</th>
+            <th>Direction</th>
+            <th>Amount</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for tx in transactions %}
+          {% set outgoing = tx.from_account_id == account.id %}
+          <tr>
+            <td>{{ tx.created_at }}</td>
+            <td>
+              {% if outgoing %}
+                {{ tx.to_name }}<br>
+                <span class="muted small">{{ tx.to_account_number|mask_account }}</span>
+              {% else %}
+                {{ tx.from_name }}<br>
+                <span class="muted small">{{ tx.from_account_number|mask_account }}</span>
+              {% endif %}
+            </td>
+            <td>{{ 'Sent' if outgoing else 'Received' }}</td>
+            <td>{{ '-' if outgoing else '+' }}{{ tx.amount|currency }}</td>
+            <td>{{ tx.status }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No transactions found.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <div class="section-header">
+      <h2>Security activity</h2>
+      {% if current_user.role == 'admin' %}
+      <a class="inline-link" href="{{ url_for('admin_security') }}">Open security ops</a>
+      {% else %}
+      <span class="muted small">Personal audit view</span>
+      {% endif %}
+    </div>
+    <p class="muted">
+      This panel now combines recent login attempts and event-level security logging so later attack and defense demos have clear evidence.
+    </p>
+    {% if recent_security_events %}
+      <ul class="activity-list">
+        {% for event in recent_security_events %}
+          <li>
+            <span class="status-badge status-{{ event.severity }}">{{ event.severity|upper }}</span>
+            <div>
+              <div><strong>{{ event.event_type.replace('_', ' ')|title }}</strong></div>
+              <div class="muted small">{{ event.created_at }}</div>
+              <div class="small">{{ event.details }}</div>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No recent security events found.</p>
+    {% endif %}
+
+    {% if recent_logins %}
+      <div class="subsection top-gap">
+        <h3>Recent login attempts</h3>
+        <ul class="activity-list compact-list">
+          {% for log in recent_logins %}
+            <li>
+              <span class="status-badge {{ 'status-success' if log.success else 'status-danger' }}">
+                {{ 'Success' if log.success else 'Failed' }}
+              </span>
+              <div>
+                <div>{{ log.attempted_at }}</div>
+                <div class="muted small">Client: {{ log.ip_address }}</div>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <div class="actions top-gap">
+      <a class="btn" href="{{ url_for('transfer') }}">Make transfer</a>
+      <a class="btn btn-outline" href="{{ url_for('transactions_page') }}">View transactions</a>
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends 'layout.html' %}
+{% block content %}
+<section class="page-hero">
+  <div>
+    <div class="section-kicker">Account profile</div>
+    <h1>Account details</h1>
+    <p class="muted">
+      Identity, account, and role information for the currently authenticated user.
+    </p>
+  </div>
+</section>
+
+<div class="grid cols-2">
+  <section class="card">
+    <table class="detail-table">
+      <tr><th>Full name</th><td>{{ current_user.full_name }}</td></tr>
+      <tr><th>Email</th><td>{{ current_user.email }}</td></tr>
+      <tr><th>Username</th><td>{{ current_user.username }}</td></tr>
+      <tr><th>Role</th><td><span class="role-chip role-{{ current_user.role }}">{{ current_user.role|upper }}</span></td></tr>
+      <tr><th>Account number</th><td>{{ account.account_number|mask_account }}</td></tr>
+      <tr><th>Account type</th><td>{{ account.account_type }}</td></tr>
+      <tr><th>Current balance</th><td>{{ account.balance|currency }}</td></tr>
+    </table>
+  </section>
+
+  <section class="card info-panel">
+    <div class="section-kicker">Profile notes</div>
+    <h2>Demo-ready account summary</h2>
+    <p class="muted">
+      This profile view is intentionally simple so the impact of future defensive controls can be shown clearly in demos and screenshots.
+    </p>
+    <div class="comparison-grid">
+      <div class="comparison-row">
+        <span>Visible account type</span>
+        <strong>{{ account.account_type }}</strong>
+      </div>
+      <div class="comparison-row">
+        <span>Current balance</span>
+        <strong>{{ account.balance|currency }}</strong>
+      </div>
+      <div class="comparison-row">
+        <span>User role</span>
+        <strong>{{ current_user.role|title }}</strong>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

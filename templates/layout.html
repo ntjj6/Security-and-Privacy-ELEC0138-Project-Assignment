@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title or 'Mock Digital Banking Platform' }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand-wrap">
+        <div class="brand-mark">MB</div>
+        <div>
+          <div class="brand">Mock Digital Banking Platform</div>
+          <div class="brand-subtitle">Security simulation and incident response sandbox</div>
+        </div>
+      </div>
+      {% if current_user %}
+      <nav>
+        {% if current_user.role == 'admin' %}
+        <a href="{{ url_for('admin_security') }}">Security Ops</a>
+        {% else %}
+        <a href="{{ url_for('dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('account_details') }}">Account</a>
+        <a href="{{ url_for('transactions_page') }}">Transactions</a>
+        <a href="{{ url_for('transfer') }}">Transfer</a>
+        {% endif %}
+      </nav>
+      <div class="topbar-user">
+        <span class="user-chip">{{ current_user.username }}</span>
+        <span class="role-chip role-{{ current_user.role }}">{{ current_user.role|upper }}</span>
+      </div>
+      <form action="{{ url_for('logout') }}" method="post" class="logout-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn btn-outline-light">Logout</button>
+      </form>
+      {% endif %}
+    </header>
+
+    <main class="container">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-stack">
+            {% for category, message in messages %}
+              <div class="flash flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

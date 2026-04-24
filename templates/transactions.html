@@ -1,0 +1,48 @@
+{% extends 'layout.html' %}
+{% block content %}
+<section class="page-hero">
+  <div>
+    <div class="section-kicker">Transaction records</div>
+    <h1>Transaction history</h1>
+    <p class="muted">Showing transfers involving account {{ account.account_number|mask_account }}.</p>
+  </div>
+</section>
+
+<section class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Time</th>
+        <th>Counterparty</th>
+        <th>Direction</th>
+        <th>Amount</th>
+        <th>Status</th>
+        <th>Note</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for tx in transactions %}
+      {% set outgoing = tx.from_account_id == account.id %}
+      <tr>
+        <td>{{ tx.id }}</td>
+        <td>{{ tx.created_at }}</td>
+        <td>
+          {% if outgoing %}
+            {{ tx.to_name }}<br>
+            <span class="muted small">{{ tx.to_account_number|mask_account }}</span>
+          {% else %}
+            {{ tx.from_name }}<br>
+            <span class="muted small">{{ tx.from_account_number|mask_account }}</span>
+          {% endif %}
+        </td>
+        <td>{{ 'Sent' if outgoing else 'Received' }}</td>
+        <td>{{ '-' if outgoing else '+' }}{{ tx.amount|currency }}</td>
+        <td>{{ tx.status }}</td>
+        <td>{{ tx.note }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

@@ -1,0 +1,427 @@
+{% extends 'layout.html' %}
+{% block content %}
+<section class="card hero-card security-hero">
+  <div class="section-kicker">Security operations</div>
+  <h1>Attack evidence dashboard</h1>
+  <p class="muted hero-copy">
+    Coursework monitoring view for demonstrating credential attacks, service degradation, and transfer abuse on the vulnerable baseline.
+  </p>
+  <div class="hero-metrics">
+    <div>
+      <div class="eyebrow">Attack surface</div>
+      <div class="hero-number">{{ attack_overview.enumerated_usernames or 0 }}</div>
+      <div class="muted small">usernames under repeated credential pressure</div>
+    </div>
+    <div>
+      <div class="eyebrow">Burst traffic</div>
+      <div class="hero-number">{{ attack_overview.latest_request_burst or 0 }}</div>
+      <div class="muted small">max requests observed in one minute bucket</div>
+    </div>
+    <div>
+      <div class="eyebrow">Noisy IPs</div>
+      <div class="hero-number">{{ attack_overview.active_attack_ips or 0 }}</div>
+      <div class="muted small">sources with 10+ logged requests</div>
+    </div>
+  </div>
+  <div class="actions top-gap">
+    <a class="btn btn-light" href="{{ url_for('export_security_dataset', dataset='request_logs') }}">Export request logs</a>
+    <a class="btn btn-light" href="{{ url_for('export_security_dataset', dataset='login_failures') }}">Export login failures</a>
+    <a class="btn btn-light" href="{{ url_for('export_security_dataset', dataset='transfer_attempts') }}">Export transfer attempts</a>
+    <a class="btn btn-light" href="{{ url_for('export_security_dataset', dataset='balance_audits') }}">Export balance audits</a>
+  </div>
+</section>
+
+<div class="grid cols-4 stats-grid">
+  <section class="card stat-card accent-card accent-danger">
+    <div class="muted">Failed logins</div>
+    <div class="stat-value">{{ metrics.failed_logins }}</div>
+  </section>
+  <section class="card stat-card accent-card accent-warning">
+    <div class="muted">Slow requests</div>
+    <div class="stat-value">{{ metrics.slow_requests }}</div>
+  </section>
+  <section class="card stat-card accent-card accent-danger">
+    <div class="muted">Duplicate transfer signals</div>
+    <div class="stat-value">{{ metrics.duplicate_transfer_signals }}</div>
+  </section>
+  <section class="card stat-card accent-card accent-dark">
+    <div class="muted">Transfers to mallory</div>
+    <div class="stat-value">{{ metrics.transfers_to_mallory }}</div>
+  </section>
+</div>
+
+<div class="grid cols-3">
+  <section class="card">
+    <div class="section-header">
+      <h2>Requests per minute</h2>
+      <span class="muted small">DDoS visibility</span>
+    </div>
+    {% if request_chart %}
+    <div class="mini-chart">
+      {% for point in request_chart %}
+      <div class="chart-column">
+        <div class="chart-bar chart-bar-blue" style="height: {{ point.height_pct }}%">
+          <span>{{ point.value }}</span>
+        </div>
+        <div class="chart-label">{{ point.label }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p>No request aggregation available yet.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <div class="section-header">
+      <h2>Failed logins per minute</h2>
+      <span class="muted small">Credential attack visibility</span>
+    </div>
+    {% if failed_login_chart %}
+    <div class="mini-chart">
+      {% for point in failed_login_chart %}
+      <div class="chart-column">
+        <div class="chart-bar chart-bar-amber" style="height: {{ point.height_pct }}%">
+          <span>{{ point.value }}</span>
+        </div>
+        <div class="chart-label">{{ point.label }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p>No failed-login aggregation available yet.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <div class="section-header">
+      <h2>Transfer attempts per minute</h2>
+      <span class="muted small">Replay and double-spend visibility</span>
+    </div>
+    {% if transfer_chart %}
+    <div class="mini-chart">
+      {% for point in transfer_chart %}
+      <div class="chart-column">
+        <div class="chart-bar chart-bar-red" style="height: {{ point.height_pct }}%">
+          <span>{{ point.value }}</span>
+        </div>
+        <div class="chart-label">{{ point.label }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p>No transfer aggregation available yet.</p>
+    {% endif %}
+  </section>
+</div>
+
+<div class="grid cols-2">
+  <section class="card">
+    <div class="section-header">
+      <h2>Attack chain summary</h2>
+      <span class="muted small">Use these stages in the report and demo narration</span>
+    </div>
+    <div class="timeline">
+      <div class="timeline-step">
+        <div class="timeline-marker status-medium">1</div>
+        <div>
+          <strong>Reconnaissance</strong>
+          <div class="muted small">Repeated username failures reveal valid accounts.</div>
+        </div>
+      </div>
+      <div class="timeline-step">
+        <div class="timeline-marker status-high">2</div>
+        <div>
+          <strong>Credential attack</strong>
+          <div class="muted small">Password guessing continues until a successful login is recorded.</div>
+        </div>
+      </div>
+      <div class="timeline-step">
+        <div class="timeline-marker status-critical">3</div>
+        <div>
+          <strong>Fraud and abuse</strong>
+          <div class="muted small">Attackers transfer to risky recipients or submit repeated transfer requests.</div>
+        </div>
+      </div>
+      <div class="timeline-step">
+        <div class="timeline-marker status-danger">4</div>
+        <div>
+          <strong>Availability pressure</strong>
+          <div class="muted small">High request bursts and slower responses show the DDoS baseline.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="section-header">
+      <h2>Control comparison hooks</h2>
+      <span class="muted small">Useful placeholders for the defense teammate</span>
+    </div>
+    <div class="comparison-grid">
+      <div class="comparison-row">
+        <span>Current request volume</span>
+        <strong>{{ metrics.request_volume }}</strong>
+      </div>
+      <div class="comparison-row">
+        <span>Transfer rejections</span>
+        <strong>{{ metrics.transfer_rejections }}</strong>
+      </div>
+      <div class="comparison-row">
+        <span>High-risk events</span>
+        <strong>{{ metrics.high_risk_events }}</strong>
+      </div>
+      <div class="comparison-row">
+        <span>Completed transfers</span>
+        <strong>{{ metrics.transfers_completed }}</strong>
+      </div>
+    </div>
+    <p class="muted small top-gap">
+      After adding rate limiting, MFA, or transaction locking, these same cards can be used for before/after screenshots.
+    </p>
+  </section>
+</div>
+
+<div class="grid cols-2">
+  <section class="card">
+    <div class="section-header">
+      <h2>Suspicious login patterns</h2>
+      <span class="muted small">Grouped by username</span>
+    </div>
+    {% if suspicious_login_patterns %}
+      <table>
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Failures</th>
+            <th>IPs</th>
+            <th>First seen</th>
+            <th>Last seen</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in suspicious_login_patterns %}
+          <tr>
+            <td>{{ item.username }}</td>
+            <td>{{ item.failure_count }}</td>
+            <td>{{ item.unique_ips }}</td>
+            <td>{{ item.first_seen }}</td>
+            <td>{{ item.last_seen }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No suspicious login clusters recorded yet.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <div class="section-header">
+      <h2>Hot paths and load points</h2>
+      <span class="muted small">Good evidence for DDoS reporting</span>
+    </div>
+    {% if hot_paths %}
+      <table>
+        <thead>
+          <tr>
+            <th>Endpoint</th>
+            <th>Method</th>
+            <th>Hits</th>
+            <th>Avg ms</th>
+            <th>Max ms</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for path in hot_paths %}
+          <tr>
+            <td>{{ path.path }}</td>
+            <td>{{ path.method }}</td>
+            <td>{{ path.hits }}</td>
+            <td>{{ path.avg_duration_ms }}</td>
+            <td>{{ path.max_duration_ms }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No request hotspots recorded yet.</p>
+    {% endif %}
+  </section>
+</div>
+
+<div class="grid cols-2">
+  <section class="card">
+    <div class="section-header">
+      <h2>Recent security events</h2>
+      <span class="muted small">Latest 20 records</span>
+    </div>
+    {% if recent_events %}
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Type</th>
+            <th>Severity</th>
+            <th>User</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for event in recent_events %}
+          <tr>
+            <td>{{ event.created_at }}</td>
+            <td>{{ event.event_type.replace('_', ' ')|title }}</td>
+            <td><span class="status-badge status-{{ event.severity }}">{{ event.severity|upper }}</span></td>
+            <td>{{ event.username or 'n/a' }}</td>
+            <td>{{ event.details }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No security events recorded yet.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <div class="section-header">
+      <h2>Potentially risky transfers</h2>
+      <span class="muted small">Threshold: {{ high_value_threshold|currency }}</span>
+    </div>
+    {% if high_risk_transfers %}
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Amount</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for tx in high_risk_transfers %}
+          <tr>
+            <td>{{ tx.created_at }}</td>
+            <td>{{ tx.from_name }}<br><span class="muted small">{{ tx.from_account_number|mask_account }}</span></td>
+            <td>{{ tx.to_name }} ({{ tx.to_username }})<br><span class="muted small">{{ tx.to_account_number|mask_account }}</span></td>
+            <td>{{ tx.amount|currency }}</td>
+            <td>{{ tx.note }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No high-risk transfers have been recorded.</p>
+    {% endif %}
+  </section>
+</div>
+
+<div class="grid cols-2">
+  <section class="card">
+    <div class="section-header">
+      <h2>Transfer attempt audit</h2>
+      <span class="muted small">Preview, confirm, and rejected submissions</span>
+    </div>
+    {% if recent_transfer_attempts %}
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Action</th>
+            <th>Status</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in recent_transfer_attempts %}
+          <tr>
+            <td>{{ item.created_at }}</td>
+            <td>{{ item.from_username or 'n/a' }}</td>
+            <td>{{ item.to_username or 'unknown' }}</td>
+            <td>{{ item.action }}</td>
+            <td><span class="status-badge status-{{ 'success' if item.status == 'completed' else 'danger' if item.status == 'rejected' else 'medium' }}">{{ item.status|upper }}</span></td>
+            <td>{{ item.amount_value|currency if item.amount_value is not none else item.amount_text }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No transfer attempts recorded yet.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <div class="section-header">
+      <h2>Balance audit trail</h2>
+      <span class="muted small">Useful for double-spend and replay analysis</span>
+    </div>
+    {% if balance_audits %}
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Account</th>
+            <th>Related</th>
+            <th>Delta</th>
+            <th>Before</th>
+            <th>After</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in balance_audits %}
+          <tr>
+            <td>{{ item.created_at }}</td>
+            <td>{{ item.account_username or 'n/a' }}</td>
+            <td>{{ item.related_username or 'n/a' }}</td>
+            <td>{{ item.amount_delta|currency }}</td>
+            <td>{{ item.balance_before|currency }}</td>
+            <td>{{ item.balance_after|currency }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No balance audit records yet.</p>
+    {% endif %}
+  </section>
+</div>
+
+<section class="card">
+  <div class="section-header">
+    <h2>Recent request logs</h2>
+    <span class="muted small">Endpoint, latency, and source evidence</span>
+  </div>
+  {% if recent_request_logs %}
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Request</th>
+          <th>Status</th>
+          <th>Duration</th>
+          <th>IP</th>
+          <th>User</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in recent_request_logs %}
+        <tr>
+          <td>{{ item.created_at }}</td>
+          <td>{{ item.method }} {{ item.path }}</td>
+          <td>{{ item.status_code }}</td>
+          <td>{{ item.duration_ms }} ms</td>
+          <td>{{ item.ip_address }}</td>
+          <td>{{ item.user_id or 'anon' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No request logs recorded yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

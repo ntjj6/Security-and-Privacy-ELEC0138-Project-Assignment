@@ -1,0 +1,89 @@
+{% extends 'layout.html' %}
+{% block content %}
+<section class="page-hero">
+  <div>
+    <div class="section-kicker">Funds movement</div>
+    <h1>Transfer funds</h1>
+    <p class="muted">Move funds between seeded demo accounts and preview risk signals before confirming.</p>
+  </div>
+  <div class="hero-inline-stats">
+    <div class="hero-inline-card">
+      <span class="hero-inline-label">Available balance</span>
+      <strong>{{ account.balance|currency }}</strong>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  {% if preview %}
+    <div class="preview-box">
+      <h2>Review transfer</h2>
+      <p class="muted">Please review the request details before submitting.</p>
+      <table class="detail-table compact-table">
+        <tr><th>Recipient</th><td>{{ preview.receiver_name }}</td></tr>
+        <tr><th>Recipient username</th><td>{{ preview.receiver_username }}</td></tr>
+        <tr><th>Recipient account</th><td>{{ preview.receiver_account_number|mask_account }}</td></tr>
+        <tr><th>Amount</th><td>{{ preview.amount|currency }}</td></tr>
+        <tr><th>Reference</th><td>{{ preview.note }}</td></tr>
+        <tr><th>Projected balance</th><td>{{ preview.projected_balance|currency }}</td></tr>
+        <tr>
+          <th>Risk level</th>
+          <td>
+            <span class="status-badge status-{{ preview.risk_level }}">{{ preview.risk_level|upper }}</span>
+          </td>
+        </tr>
+      </table>
+
+      {% if preview.risk_flags %}
+        <div class="risk-box top-gap">
+          <strong>Risk signals</strong>
+          <ul>
+            {% for flag in preview.risk_flags %}
+              <li>{{ flag.replace('_', ' ')|title }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% else %}
+        <p class="muted top-gap">No high-risk conditions were triggered for this transfer.</p>
+      {% endif %}
+
+      <div class="actions top-gap">
+        <form method="post" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="action" value="confirm">
+          <input type="hidden" name="to_account_id" value="{{ form_data.to_account_id }}">
+          <input type="hidden" name="amount" value="{{ form_data.amount }}">
+          <input type="hidden" name="note" value="{{ form_data.note }}">
+          <button type="submit" class="btn">Confirm transfer</button>
+        </form>
+        <a class="btn btn-outline" href="{{ url_for('transfer') }}">Edit details</a>
+      </div>
+    </div>
+  {% else %}
+    <form method="post" class="form-grid narrow-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="action" value="preview">
+      <label>
+        Recipient account
+        <select name="to_account_id" required>
+          <option value="">Choose recipient</option>
+          {% for user in users %}
+            <option value="{{ user.account_id }}" {% if form_data.to_account_id == user.account_id|string %}selected{% endif %}>
+              {{ user.full_name }} ({{ user.username }}) - {{ user.account_number|mask_account }}
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Amount (GBP)
+        <input type="number" step="0.01" min="0.01" name="amount" value="{{ form_data.amount }}" required>
+      </label>
+      <label>
+        Reference
+        <input type="text" name="note" maxlength="120" value="{{ form_data.note }}" placeholder="Payment reference">
+      </label>
+      <button type="submit" class="btn">Review transfer</button>
+    </form>
+  {% endif %}
+</section>
+{% endblock %}
